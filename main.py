@@ -1,166 +1,116 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from src.WriterBuffer import WriterBuffer
 
 def main():
     wb = WriterBuffer()
-
     root = tk.Tk()
     root.title("Xestión de Socios")
-    
-    label = tk.Label(root, text="Engade un novo socio")
+    root.geometry("550x750") # Tamaño inicial de la ventana
 
+    # Estilo para los widgets de ttk
+    style = ttk.Style(root)
+    style.theme_use("clam") # Puedes probar otros temas como 'alt', 'default', 'classic'
 
-    label.pack(pady=20)
-    
-    entryDNI = tk.Entry(root)
-    entryDNI.pack(pady=10)
+    # --- Frame principal ---
+    main_frame = ttk.Frame(root, padding="10")
+    main_frame.pack(fill=tk.BOTH, expand=True)
 
-    entryNombre = tk.Entry(root)
-    entryNombre.pack(pady=10)
+    # --- Frame para el formulario de entrada ---
+    form_frame = ttk.LabelFrame(main_frame, text="Datos do Socio", padding="10")
+    form_frame.pack(fill=tk.X, pady=10)
 
-    entryApelidos = tk.Entry(root)
-    entryApelidos.pack(pady=10)
+    # Labels y Entries para los datos del socio
+    labels_texts = ["DNI:", "Nome:", "Apelidos:", "Poboacion:", "Enderezo:", "Telefono:", "Email:"]
+    entries = {}
 
-    entryPoboacion = tk.Entry(root)
-    entryPoboacion.pack(pady=10)
+    for i, text in enumerate(labels_texts):
+        label = ttk.Label(form_frame, text=text)
+        label.grid(row=i, column=0, padx=5, pady=5, sticky=tk.W)
+        entry = ttk.Entry(form_frame, width=40)
+        entry.grid(row=i, column=1, padx=5, pady=5, sticky=tk.EW)
+        entries[text.replace(":", "")] = entry
+        
+    form_frame.columnconfigure(1, weight=1)
 
-    entryTelefono = tk.Entry(root)
-    entryTelefono.pack(pady=10)
+    # --- Frame para la lista y botones ---
+    list_frame = ttk.LabelFrame(main_frame, text="Socios a Engadir", padding="10")
+    list_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
-    entryEmail = tk.Entry(root)
-    entryEmail.pack(pady=10)
+    listbox = tk.Listbox(list_frame, height=10)
+    listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
 
-    entryDireccion = tk.Entry(root)
-    entryDireccion.pack(pady=10)
-    
-
-    # Frame para la lista y botones
-    frame_lista = tk.Frame(root)
-    frame_lista.pack(pady=10)
-
-    # Listbox para mostrar los socios en el buffer
-    listbox = tk.Listbox(frame_lista, width=40)
-    listbox.pack(side=tk.LEFT, padx=5)
-
-    # Scrollbar para la listbox
-    scrollbar = tk.Scrollbar(frame_lista, orient="vertical", command=listbox.yview)
-    scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+    scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=listbox.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     listbox.config(yscrollcommand=scrollbar.set)
+    
+    def clear_entries():
+        for entry in entries.values():
+            entry.delete(0, tk.END)
 
     def actualizar_listbox():
         listbox.delete(0, tk.END)
         for socio in wb.get_buffer():
-            # Mostrar una representación legible del socio
-            listbox.insert(tk.END, f"{socio['DNI']} - {socio['Nombre']} {socio['Apelidos']}")
-            listbox.insert(tk.END, socio)
+            listbox.insert(tk.END, f"{socio['DNI']} - {socio['Nome']} {socio['Apelidos']}")
+
     def anadir_socio():
-        dni = entryDNI.get().strip()
-        if not dni:
-            messagebox.showerror("Error", "O DNI non pode estar baleiro.")
-            return
-        nombre = entryNombre.get().strip()
-        if not nombre:
-            messagebox.showerror("Error", "O nome non pode estar baleiro.")
-            return
-        apelidos = entryApelidos.get().strip()
-        if not apelidos:
-            messagebox.showerror("Error", "Os apelidos non poden estar baleiros.")
-            return
-        poboacion = entryPoboacion.get().strip()
-        if not poboacion:
-            messagebox.showerror("Error", "A poboación non pode estar baleira.")
-            return
-        direccion = entryDireccion.get().strip()
-        if not direccion:
-            messagebox.showerror("Error", "A dirección non pode estar baleira.")
-            return
-        telefono = entryTelefono.get().strip()
-        if not telefono:
-            messagebox.showerror("Error", "O teléfono non pode estar baleiro.")
-            return
-        email = entryEmail.get().strip()
-        if not email:
-            messagebox.showerror("Error", "O email non pode estar baleiro.")
-            return
+        socio_data = {key.replace(" ", ""): entry.get().strip() for key, entry in entries.items()}
         
-        wb.add(item={
-            'DNI': dni,
-            'Nombre': nombre,
-            'Apelidos': apelidos,
-            'Poboacion': poboacion,
-            'Direccion': direccion,
-            'Telefono': telefono,
-            'Email': email
-        })
+        # Renombrar 'Enderezo' a 'Enderezo' para coincidir con WriterBuffer
+        socio_data['Enderezo'] = socio_data.pop('Enderezo')
+
+        for key, value in socio_data.items():
+            if not value:
+                messagebox.showerror("Error", f"O campo '{key}' non pode estar baleiro.")
+                return
+        
+        wb.add(socio_data)
         actualizar_listbox()
+        clear_entries()
 
     def eliminar_socio():
         seleccion = listbox.curselection()
         if not seleccion:
             messagebox.showerror("Error", "Non hai ningún socio seleccionado para eliminar.")
             return
+        
         idx = seleccion[0]
-        socio = wb.get_buffer()[idx]
         wb.pop(idx)
-        messagebox.showinfo("Información", f"Socio {socio['DNI']} eliminado correctamente.")
         actualizar_listbox()
+        messagebox.showinfo("Información", f"Socio eliminado da lista.")
 
-    # Función para cancelar selección
-    def cancelar_seleccion():
-        listbox.selection_clear(0, tk.END)
-        entryDNI.delete(0, tk.END)
-        entryNombre.delete(0, tk.END)
-        entryApelidos.delete(0, tk.END)
-        entryPoboacion.delete(0, tk.END)
-        entryDireccion.delete(0, tk.END)
-        entryTelefono.delete(0, tk.END)
-        entryEmail.delete(0, tk.END)
-
-    # Función para guardar los datos del buffer (aquí solo imprime, puedes cambiarlo)
-    def guardar_buffer():
-        print("Guardando socios:", wb.get_buffer())
-        wb.clear()
-        actualizar_listbox()
-
-    # Al seleccionar un elemento, mostrarlo en el entry
     def on_select(event):
         seleccion = listbox.curselection()
         if seleccion:
             idx = seleccion[0]
             socio = wb.get_buffer()[idx]
-            entryDNI.delete(0, tk.END)
-            entryDNI.insert(0, socio['DNI'])
-            entryNombre.delete(0, tk.END)
-            entryNombre.insert(0, socio['Nombre'])
-            entryApelidos.delete(0, tk.END)
-            entryApelidos.insert(0, socio['Apelidos'])
-            entryPoboacion.delete(0, tk.END)
-            entryPoboacion.insert(0, socio['Poboacion'])
-            entryDireccion.delete(0, tk.END)
-            entryDireccion.insert(0, socio['Direccion'])
-            entryTelefono.delete(0, tk.END)
-            entryTelefono.insert(0, socio['Telefono'])
-            entryEmail.delete(0, tk.END)
-            entryEmail.insert(0, socio['Email'])
+            clear_entries()
+            entries['DNI'].insert(0, socio.get('DNI', ''))
+            entries['Nome'].insert(0, socio.get('Nome', ''))
+            entries['Apelidos'].insert(0, socio.get('Apelidos', ''))
+            entries['Poboacion'].insert(0, socio.get('Poboacion', ''))
+            entries['Enderezo'].insert(0, socio.get('Enderezo', ''))
+            entries['Telefono'].insert(0, socio.get('Telefono', ''))
+            entries['Email'].insert(0, socio.get('Email', ''))
 
     listbox.bind('<<ListboxSelect>>', on_select)
 
-    # Botones
-    frame_botones = tk.Frame(root)
-    frame_botones.pack(pady=10)
+    # --- Frame para los botones de acción ---
+    action_buttons_frame = ttk.Frame(main_frame)
+    action_buttons_frame.pack(fill=tk.X, pady=5)
 
-    btn_anadir = tk.Button(frame_botones, text="Añadir", command=anadir_socio)
-    btn_anadir.grid(row=0, column=0, padx=5)
+    btn_anadir = ttk.Button(action_buttons_frame, text="Engadir á Lista", command=anadir_socio)
+    btn_anadir.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
-    btn_eliminar = tk.Button(frame_botones, text="Eliminar", command=eliminar_socio)
-    btn_eliminar.grid(row=0, column=2, padx=5)
+    btn_eliminar = ttk.Button(action_buttons_frame, text="Eliminar da Lista", command=eliminar_socio)
+    btn_eliminar.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
-    btn_cancelar = tk.Button(frame_botones, text="Cancelar", command=cancelar_seleccion)
-    btn_cancelar.grid(row=0, column=3, padx=5)
+    btn_cancelar = ttk.Button(action_buttons_frame, text="Limpar Selección", command=clear_entries)
+    btn_cancelar.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
-    btn_guardar = tk.Button(root, text="Guardar buffer", command=guardar_buffer)
-    btn_guardar.pack(pady=10)
+    # --- Botón para guardar el buffer ---
+    btn_guardar = ttk.Button(main_frame, text="Gardar Socios en Excel", command=wb.write)
+    btn_guardar.pack(pady=10, fill=tk.X)
 
     root.mainloop()
 
