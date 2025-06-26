@@ -1,26 +1,32 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import pandas as pd
 from src.WriterBuffer import WriterBuffer
+from src.excelWriter import write_to_excel
 
 def main():
     wb = WriterBuffer()
     root = tk.Tk()
     root.title("Xestión de Socios")
-    root.geometry("550x750") # Tamaño inicial de la ventana
+    root.geometry("650x775")
 
-    # Estilo para los widgets de ttk
     style = ttk.Style(root)
-    style.theme_use("clam") # Puedes probar otros temas como 'alt', 'default', 'classic'
+    style.theme_use("clam")
 
-    # --- Frame principal ---
-    main_frame = ttk.Frame(root, padding="10")
+    # --- Notebook para las pestañas ---
+    notebook = ttk.Notebook(root)
+    notebook.pack(pady=10, padx=10, fill='both', expand=True)
+
+    # --- Pestaña 1: Engadir Socios ---
+    tab1 = ttk.Frame(notebook)
+    notebook.add(tab1, text='Engadir Socios')
+
+    main_frame = ttk.Frame(tab1, padding="10")
     main_frame.pack(fill=tk.BOTH, expand=True)
 
-    # --- Frame para el formulario de entrada ---
     form_frame = ttk.LabelFrame(main_frame, text="Datos do Socio", padding="10")
     form_frame.pack(fill=tk.X, pady=10)
 
-    # Labels y Entries para los datos del socio
     labels_texts = ["DNI:", "Nome:", "Apelidos:", "Poboacion:", "Enderezo:", "Telefono:", "Email:"]
     entries = {}
 
@@ -33,7 +39,6 @@ def main():
         
     form_frame.columnconfigure(1, weight=1)
 
-    # --- Frame para la lista y botones ---
     list_frame = ttk.LabelFrame(main_frame, text="Socios a Engadir", padding="10")
     list_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
@@ -95,7 +100,6 @@ def main():
 
     listbox.bind('<<ListboxSelect>>', on_select)
 
-    # --- Frame para los botones de acción ---
     action_buttons_frame = ttk.Frame(main_frame)
     action_buttons_frame.pack(fill=tk.X, pady=5)
 
@@ -108,9 +112,33 @@ def main():
     btn_cancelar = ttk.Button(action_buttons_frame, text="Limpar Selección", command=clear_entries)
     btn_cancelar.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
-    # --- Botón para guardar el buffer ---
     btn_guardar = ttk.Button(main_frame, text="Gardar Socios en Excel", command=wb.write)
     btn_guardar.pack(pady=10, fill=tk.X)
+
+    # --- Pestaña 2: Ver Socios ---
+    tab2 = ttk.Frame(notebook)
+    notebook.add(tab2, text='Ver Socios')
+
+    db_frame = ttk.Frame(tab2, padding="10")
+    db_frame.pack(fill='both', expand=True)
+
+    tree_frame = ttk.Frame(db_frame)
+    tree_frame.pack(fill='both', expand=True)
+
+    tree = ttk.Treeview(tree_frame, columns=labels_texts, show='headings')
+    
+    for col in labels_texts:
+        tree.heading(col, text=col)
+        tree.column(col, anchor='w', width=80)
+
+    tree.pack(side='left', fill='both', expand=True)
+
+    tree_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+    tree_scrollbar.pack(side='right', fill='y')
+    tree.configure(yscrollcommand=tree_scrollbar.set)
+
+    btn_refresh = ttk.Button(db_frame, text="Actualizar Lista de Socios", command=lambda: print('Holaaa'))
+    btn_refresh.pack(pady=10)
 
     root.mainloop()
 

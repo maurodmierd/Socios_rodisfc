@@ -1,5 +1,6 @@
 import pandas as pd
 from tkinter import messagebox
+from src.excelWriter import write_to_excel
 
 class WriterBuffer:
     def __init__(self):
@@ -28,8 +29,8 @@ class WriterBuffer:
         return self.buffer.to_dict('records')
 
     def write(self):
-        from src.excelWriter import write_to_excel
         if not self.buffer.empty:
+            
             write_to_excel(self.buffer)
             self.clear()
         else:
